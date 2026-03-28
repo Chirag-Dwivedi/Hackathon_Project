@@ -22,6 +22,7 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS users (
             id BIGINT PRIMARY KEY AUTO_INCREMENT,
             username VARCHAR(50) NOT NULL UNIQUE,
+            email VARCHAR(255) UNIQUE,
             password VARCHAR(255) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -166,6 +167,15 @@ def create_tables():
         with connection.cursor() as cursor:
             for statement in statements:
                 cursor.execute(statement)
+            cursor.execute("SHOW COLUMNS FROM users LIKE 'email'")
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    ALTER TABLE users
+                    ADD COLUMN email VARCHAR(255) UNIQUE
+                    AFTER username
+                    """
+                )
         connection.commit()
     finally:
         connection.close()

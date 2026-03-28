@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3001/api/auth'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001/api/auth'
 
 function getToken() {
   return localStorage.getItem('sleeves_token')
@@ -27,16 +27,26 @@ export function getStoredUser() {
 
 async function request(path, options = {}) {
   const token = getToken()
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  })
+  let res
 
-  const data = await res.json()
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    })
+  } catch (error) {
+    const err = new Error(
+      `Cannot reach the backend at ${BASE_URL}. Make sure the Flask server is running on port 3001.`,
+    )
+    err.cause = error
+    throw err
+  }
+
+  const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     const err = new Error(data.error || 'Request failed')
     err.details = data.details
@@ -75,7 +85,11 @@ export async function logout() {
 }
 
 export async function getMe() {
-  return request('/me')
+  const data = await request('/me')
+  if (data.user) {
+    setUser(data.user)
+  }
+  return data
 }
 
 export function isAuthenticated() {

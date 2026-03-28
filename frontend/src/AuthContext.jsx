@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { getStoredUser, isAuthenticated, logout as apiLogout } from './api.js'
+import { getMe, getStoredUser, isAuthenticated, logout as apiLogout } from './api.js'
 
 const AuthContext = createContext(null)
 
@@ -8,11 +8,44 @@ export function AuthProvider({ children }) {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Hydrate from localStorage on mount
-    if (isAuthenticated()) {
-      setUser(getStoredUser())
+    let cancelled = false
+
+    async function hydrateAuth() {
+      if (!isAuthenticated()) {
+        if (!cancelled) setReady(true)
+        return
+      }
+
+      const cachedUser = getStoredUser()
+      if (cachedUser && !cancelled) {
+        setUser(cachedUser)
+      }
+
+      try {
+        const { user: freshUser } = await getMe()
+        if (!cancelled) {
+          setUser(freshUser)
+        }
+      } catch {
+        try {
+          await apiLogout()
+        } finally {
+          if (!cancelled) {
+            setUser(null)
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setReady(true)
+        }
+      }
     }
-    setReady(true)
+
+    hydrateAuth()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const handleLogin = (userData) => {
