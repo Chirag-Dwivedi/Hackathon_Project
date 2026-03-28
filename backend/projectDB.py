@@ -36,7 +36,8 @@ def create_tables():
             aesthetic VARCHAR(80),
             season VARCHAR(40),
             occasion VARCHAR(80),
-            cover_image_url TEXT,
+            cover_image_url LONGTEXT,
+            layout_json LONGTEXT,
             is_public BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -49,9 +50,14 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS moodboard_items (
             id BIGINT PRIMARY KEY AUTO_INCREMENT,
             moodboard_id BIGINT NOT NULL,
-            image_url TEXT NOT NULL,
+            client_id VARCHAR(191),
+            title VARCHAR(120),
+            category VARCHAR(80),
+            image_url LONGTEXT NOT NULL,
             source_url TEXT,
             note TEXT,
+            board_x INT NOT NULL DEFAULT 0,
+            board_y INT NOT NULL DEFAULT 0,
             display_order INT NOT NULL DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_moodboard_items_moodboard
@@ -176,6 +182,80 @@ def create_tables():
                     AFTER username
                     """
                 )
+
+            cursor.execute("SHOW COLUMNS FROM moodboards LIKE 'layout_json'")
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    ALTER TABLE moodboards
+                    ADD COLUMN layout_json LONGTEXT
+                    AFTER cover_image_url
+                    """
+                )
+
+            cursor.execute(
+                """
+                ALTER TABLE moodboards
+                MODIFY COLUMN cover_image_url LONGTEXT
+                """
+            )
+
+            cursor.execute("SHOW COLUMNS FROM moodboard_items LIKE 'client_id'")
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    ALTER TABLE moodboard_items
+                    ADD COLUMN client_id VARCHAR(191)
+                    AFTER moodboard_id
+                    """
+                )
+
+            cursor.execute("SHOW COLUMNS FROM moodboard_items LIKE 'title'")
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    ALTER TABLE moodboard_items
+                    ADD COLUMN title VARCHAR(120)
+                    AFTER client_id
+                    """
+                )
+
+            cursor.execute("SHOW COLUMNS FROM moodboard_items LIKE 'category'")
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    ALTER TABLE moodboard_items
+                    ADD COLUMN category VARCHAR(80)
+                    AFTER title
+                    """
+                )
+
+            cursor.execute("SHOW COLUMNS FROM moodboard_items LIKE 'board_x'")
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    ALTER TABLE moodboard_items
+                    ADD COLUMN board_x INT NOT NULL DEFAULT 0
+                    AFTER note
+                    """
+                )
+
+            cursor.execute("SHOW COLUMNS FROM moodboard_items LIKE 'board_y'")
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    ALTER TABLE moodboard_items
+                    ADD COLUMN board_y INT NOT NULL DEFAULT 0
+                    AFTER board_x
+                    """
+                )
+
+            cursor.execute(
+                """
+                ALTER TABLE moodboard_items
+                MODIFY COLUMN image_url LONGTEXT NOT NULL
+                """
+            )
         connection.commit()
     finally:
         connection.close()
